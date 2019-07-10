@@ -7,4 +7,4 @@
  *         Yannic Schröder <yannic@dontclickthis.de>
  */ 
 
-void control_init(void);
+void control_init(uint8_t *bat);

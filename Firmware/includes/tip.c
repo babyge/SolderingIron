@@ -91,7 +91,7 @@ void updateState(uint16_t temp) {
 		}
 
 		// check if tip is able to heat up at all (detects broken heating elements)
-		if (temp < tip_getTargetTemp() - 20) {	// if tip is 20 degree colder than the target temperature it should be heated
+		if (temp < tip_getTargetTemp() - 40) {	// if tip is 20 degree colder than the target temperature it should be heated
 			if (tip_was_powered) {				// if the tip was powered in the last cycle
 				static int16_t saved_temp = -1;
 				if (state_counter == 0) { // initialize by saving the current temperature

@@ -19,6 +19,7 @@
 #include "tip.h" 
 #include "timer0.h"
 #include "uart.h"
+#include "adc.h"
 
 #define Ta 100 //ms  //control cycle time
 #define Trand ((Ta*32)/255)
@@ -34,15 +35,42 @@ static volatile uint8_t pwm_value = 0;					// current heating value (0-255)
 static uint16_t pwm_count = 0;							// counter for the software pwm
 static volatile uint8_t measurement_finished = 0;
 
+static uint8_t *voltage;
+
 static void control(int16_t temp);
 
-void new_temperature_ready_callback(int16_t temp){
-	control(temp);				//calculate a new y
+void new_voltage_ready_callback(uint16_t adc){
+	// convert ADC result into voltage
+	*voltage = ((uint32_t) adc*3675)/24064;
 	measurement_finished = 1;	//temperature measurement is finished
 }
 
-void control_init(void)
+void new_temperature_ready_callback(int16_t temp){
+	control(temp);				//calculate a new y
+
+	// wait if adc is busy
+	while(adc_is_busy());
+
+	//ensure adc init and start is done atomicly
+	uint8_t sreg = SREG;
+	cli();
+
+	adc_configuration_t conf = {
+		.channel = CH_ADC3,
+		.reference = REF_VCC,
+		.trigger = TRGR_MANUAL,
+	};
+	adc_init(conf);
+	adc_set_conversion_complete_callback(new_voltage_ready_callback);
+	adc_trigger();
+
+	SREG = sreg;
+
+}
+
+void control_init(uint8_t *bat)
 {
+	voltage = bat;
 	OCR0A = Trand;
 	TCCR0A |= (1 << WGM01); //CTC mode
 	TIMSK0 |= (1 << OCIE0A) ;

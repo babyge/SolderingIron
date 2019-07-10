@@ -6,6 +6,8 @@
 // Uncomment to use rotary encoder instead of button for temperature setting
 //#define ROTARY_ENCODER 1
 
+#define VOLTAGE_MIN	105
+
 // Change if you want to disable resting.
 #define GRIP_ENABLE 1
 
@@ -19,7 +21,7 @@
 #define TEMP_MIN 0
 
 // default power on temperature
-#define DEFAULT_TEMP 300
+#define DEFAULT_TEMP 330
 #define SAVED_TEMP0 350
 #define SAVED_TEMP1 250
 
@@ -34,7 +36,7 @@
 
 // maximum realistic temperature change per second
 //if the temperature changes too fast, something hardware wise must be wrong
-#define MAX_TEMP_PER_SECOND 20
+#define MAX_TEMP_PER_SECOND 40
 
 //PID-Controller values
 #define PID_P 350

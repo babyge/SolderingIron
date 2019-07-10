@@ -15,3 +15,10 @@
 *.h~
 *.o
 *.md~
+
+# Eclipse project files
+.metadata
+RemoteSystemsTempFiles
+Firmware/build
+
+

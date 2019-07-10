@@ -61,7 +61,7 @@ CONFIG_SERIAL_BAUDRATE = 19200
 CONFIG_MASTER_MODE = 1
 
 # avrdude programmer protocol
-PROG = usbasp
+PROG = avrispmkII
 # avrdude programmer device
 DEV = usb
 # further flags for avrdude

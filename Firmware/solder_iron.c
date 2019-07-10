@@ -52,8 +52,8 @@ int16_t temperature_save = 0;
 void plus(void)
 {
   temperature = tip_getTargetTemp();
-  if (temperature != TEMP_MAX) {
-  	temperature++;
+  if (temperature <= TEMP_MAX-10) {
+  	temperature+=10;
 	display_temperature(temperature);
 	tip_setTargetTemp(temperature);
   }
@@ -62,8 +62,8 @@ void plus(void)
 void minus(void)
 {
   temperature = tip_getTargetTemp();
-  if (temperature != TEMP_MIN) {
-    temperature--;
+  if (temperature >= TEMP_MIN+10) {
+    temperature-=10;
 	display_temperature(temperature);
 	tip_setTargetTemp(temperature);
   }
@@ -93,6 +93,7 @@ void from_menu(void)
 
 int main(void)
 {
+	uint8_t bat = 0;
 	int16_t old_temp = 0;
 	on_watchdog_reset();
 	wdt_enable(WDTO_500MS);
@@ -107,6 +108,10 @@ int main(void)
 #endif
 	uart_init(19200, one_stop_bit_e, no_parity_e);
 
+	next_time_t bat_low_timer;
+	timer_init(&bat_low_timer,10,0,0); // 1s
+	timer_prepare();
+
 	next_time_t new_temp_timer;
 	timer_init(&new_temp_timer,1,0,0); // 1s
 	timer_prepare();
@@ -116,9 +121,9 @@ int main(void)
 	timer_set(&temp_timer);
 
 	temperature = config.default_temp;
-	tip_setTargetTemp(temperature);
+	tip_setTargetTemp(0);
 	tip_enable();
-	control_init();  // this heats things up!
+	control_init(&bat);  // this heats things up!
 
 	grip_init();
 
@@ -127,9 +132,33 @@ int main(void)
 	display_sign(1, SIGN_I);
 	display_sign(0, SIGN_EXCLAMATION);
 	printf("booted\r\n");
+	uint8_t bat_low = 0;
+	uint8_t i;
+	for (i = 0; i < 6; i++) {
+		wdt_reset();
+		display_fixed_point(bat, -1);
+		timer_set(&temp_timer);
+		while (!timer_past(&temp_timer))
+			;
+	}
+	tip_setTargetTemp(temperature);
+	old_temp = temperature;
+	timer_set(&temp_timer);
 	while(1)
 	{
+		if (bat < VOLTAGE_MIN) {
+			if (!bat_low) {
+				timer_set(&bat_low_timer);
+			}
+			bat_low = 1;
+			tip_disable();
+		} else if (bat >= VOLTAGE_MIN && bat_low
+				&& timer_past(&bat_low_timer)) {
+			bat_low = 0;
+			tip_enable();
+		}
 		if (!in_menu){
+		    printf("%d\n", tip_getTemp());
 			if (old_temp != temperature){
 				old_temp = temperature;
 
@@ -148,20 +177,27 @@ int main(void)
 			if(temp_to_show == 0){
 				if(timer_past(&temp_timer)){
 					timer_set(&temp_timer);
+					if(!bat_low){
 					switch (tip_getState()) {
-					case TIP_CONNECTED:
-						display_temperature(tip_getTemp());
-						break;
-					case TIP_DISCONNECTED:
-						display_sign(2, SIGN_MINUS);
-						display_sign(1, SIGN_MINUS);
-						display_sign(0, SIGN_MINUS);
-						break;
-					case TIP_BROKEN:
-						display_sign(2, SIGN_T);
-						display_sign(1, SIGN_I);
-						display_sign(0, SIGN_P);
-						break;
+						case TIP_CONNECTED:
+							display_temperature(tip_getTemp());
+							break;
+						case TIP_DISCONNECTED:
+//						display_sign(2, SIGN_MINUS);
+//						display_sign(1, SIGN_MINUS);
+//						display_sign(0, SIGN_MINUS);
+							display_fixed_point(bat, -1);
+							break;
+						case TIP_BROKEN:
+							display_sign(2, SIGN_T);
+							display_sign(1, SIGN_I);
+							display_sign(0, SIGN_P);
+							break;
+						}
+					} else {
+						display_sign(2, SIGN_B);
+						display_sign(1, SIGN_A);
+						display_sign(0, SIGN_T);
 					}
 				}
 			}
